@@ -31,6 +31,8 @@
 
 ### 편의를 위해(시간이 너무 오래걸려서 답답함)
 FROM amazoncorretto:23-alpine3.21-jdk
+RUN apk add --no-cache tzdata
+ENV TZ=Asia/Seoul
 COPY build/libs/*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

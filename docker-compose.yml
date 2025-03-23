@@ -1,12 +1,47 @@
 version: '3.8'
 
+x-common-variables:
+  PG_PORT: &PG_PORT "5432"
+  PG_DB: &PG_DB "omen"
+  PG_USER: &PG_USER "omen"
+  PG_PASSWORD: &PG_PASSWORD "0000"
+
 networks:
+  backend:
   k6:
   grafana:
 
 services:
-  my-app:
+  postgres:
+    image: postgres:15
+    volumes:
+      - ./docker_test/postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
+      - backend
+    ports:
+      - *PG_PORT
+    environment:
+      POSTGRES_DB: *PG_DB
+      POSTGRES_USER: *PG_USER
+      POSTGRES_PASSWORD: *PG_PASSWORD
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U omen" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  
+  
+  my-app:
+    environment:
+      SPRING_PROFILES_ACTIVE: stg
+      DB_HOST: postgres
+      DB_PORT: *PG_PORT
+      DB_DATABASE_NAME: *PG_DB
+      DB_USERNAME: *PG_USER
+      DB_PASSWORD: *PG_PASSWORD
+    networks:
+      - backend
       - k6
     build:
       context: .
@@ -27,6 +62,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   influxdb:
     image: influxdb:1.8
